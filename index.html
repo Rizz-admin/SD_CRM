@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apartment Reservation System</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Apartment Reservation System</h1>
+    <p>Click on an apartment to reserve or cancel.</p>
+
+    <div id="blocks"></div>
+
+    <!-- Modal -->
+    <div id="modal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2 id="apt-title"></h2>
+        <div id="status"></div>
+        <div id="form-container" style="display:none;">
+          <input type="text" id="name" placeholder="Name" required>
+          <input type="text" id="surname" placeholder="Surname" required>
+          <button id="reserve-btn">Reserve</button>
+        </div>
+        <button id="cancel-btn" style="display:none; background:#e74c3c;">Cancel Reservation</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const modal = document.getElementById('modal');
+    const closeBtn = document.querySelector('.close');
+    let currentApartmentId = null;
+
+    closeBtn.onclick = () => modal.style.display = 'none';
+    window.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; }
+
+    async function loadApartments() {
+  const res = await fetch('/api/apartments');
+  const apartments = await res.json();
+
+  const container = document.getElementById('blocks');
+  container.innerHTML = '';
+
+  // Group apartments by block → floor → list
+  const blocks = {};
+  apartments.forEach(apt => {
+    if (!blocks[apt.block]) blocks[apt.block] = {};
+    if (!blocks[apt.block][apt.floor]) blocks[apt.block][apt.floor] = [];
+    blocks[apt.block][apt.floor].push(apt);
+  });
+
+  // Render each block
+  Object.keys(blocks).sort().forEach(block => {
+    const blockDiv = document.createElement('div');
+    blockDiv.className = 'block';
+    blockDiv.innerHTML = `<h2>Block ${block}</h2>`;
+
+    // Render floors from 4 down to 1
+    for (let floor = 4; floor >= 1; floor--) {
+      const floorDiv = document.createElement('div');
+      floorDiv.className = 'floor';
+      floorDiv.innerHTML = `<strong>Floor ${floor}</strong><div class="apartments"></div>`;
+      const aptContainer = floorDiv.querySelector('.apartments');
+
+      // Always show exactly these 4 apartments per floor
+      const numbers = [`${block}${floor}01`, `${block}${floor}02`, `${block}${floor}03`, `${block}${floor}04`];
+
+      numbers.forEach(num => {
+        // Find exact match: block + floor + number
+        const apt = apartments.find(a =>
+          a.block === block && a.floor === floor && a.number === num
+        ) || {
+          id: null,
+          block,
+          floor,
+          number: num,
+          name: null,
+          surname: null
+        };
+
+        const aptDiv = document.createElement('div');
+        aptDiv.className = 'apartment';
+        aptDiv.textContent = num;
+
+        if (apt.name) {
+          aptDiv.classList.add('reserved');
+          aptDiv.title = `Reserved by ${apt.name} ${apt.surname}`;
+        } else {
+          aptDiv.title = 'Available – click to reserve';
+        }
+
+        aptDiv.onclick = () => openModal(apt);
+        aptContainer.appendChild(aptDiv);
+      });
+
+      blockDiv.appendChild(floorDiv);
+    }
+
+    container.appendChild(blockDiv);
+  });
+}
+
+    function openModal(apt) {
+      currentApartmentId = apt.id;
+      document.getElementById('apt-title').textContent = `${apt.number} (Block ${apt.block}, Floor ${apt.floor})`;
+
+      const status = document.getElementById('status');
+      const form = document.getElementById('form-container');
+      const cancelBtn = document.getElementById('cancel-btn');
+
+      if (apt.name) {
+        status.innerHTML = `<p><strong>Reserved by:</strong> ${apt.name} ${apt.surname}</p>`;
+        form.style.display = 'none';
+        cancelBtn.style.display = 'block';
+      } else {
+        status.innerHTML = '<p style="color:green;">Available</p>';
+        form.style.display = 'block';
+        cancelBtn.style.display = 'none';
+      }
+
+      modal.style.display = 'block';
+    }
+
+    document.getElementById('reserve-btn').onclick = async () => {
+      const name = document.getElementById('name').value.trim();
+      const surname = document.getElementById('surname').value.trim();
+      if (!name || !surname) return alert("Please fill name and surname");
+
+      await fetch(`/api/reserve/${currentApartmentId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, surname })
+      });
+      modal.style.display = 'none';
+      loadApartments();
+    };
+
+    document.getElementById('cancel-btn').onclick = async () => {
+      if (!confirm("Cancel this reservation?")) return;
+
+      await fetch(`/api/reserve/${currentApartmentId}`, { method: 'DELETE' });
+      modal.style.display = 'none';
+      loadApartments();
+    };
+
+    // Load on start
+    loadApartments();
+    setInterval(loadApartments, 10000); // Auto-refresh every 10s
+  </script>
+</body>
+</html>
