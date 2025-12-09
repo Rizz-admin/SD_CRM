@@ -7,3 +7,6 @@ apartment-reservation/
 ├── db.sqlite               ← Database file (auto-created)
 ├── package.json
 └── README.md
+
+
+1) change index.html so that the amount of floors and aps are not depend on the script

@@ -27,7 +27,7 @@ db.serialize(() => {
       apartment_id INTEGER PRIMARY KEY,
       name TEXT NOT NULL,
       surname TEXT NOT NULL,
-      reserved_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      reserved_at DATETIME DEFAULT CURRENT_TIMESTAMP, 
       FOREIGN KEY (apartment_id) REFERENCES apartments (id)
     )
   `);
