@@ -128,7 +128,12 @@ button {
   line-height: 1.4;
   font-size: 14px;
 }
-.apartment strong {
+.apartment strong{
   font-size: 16px;
   background: #2ecc71;
+}
+
+.apartment.reserved strong{
+  font-size: 16px;
+  background: #e74c3c;
 }

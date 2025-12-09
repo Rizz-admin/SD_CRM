@@ -42,14 +42,41 @@ db.serialize(() => {
 
   db.run(`
     CREATE TABLE IF NOT EXISTS reservations (
-      apartment_id INTEGER PRIMARY KEY,
-      name TEXT NOT NULL,
-      surname TEXT NOT NULL,
+      log_id INTEGER PRIMARY KEY,
+      apartment_id
+      person_id
+      action TEXT NOT NULL CHECK(action IN ('reserve', 'cancel')),
       reserved_at DATETIME DEFAULT CURRENT_TIMESTAMP, 
-      FOREIGN KEY (apartment_id) REFERENCES apartments (id)
+      FOREIGN KEY (apartment_id) REFERENCES apartments (id),
+      FOREIGN KEY (person_id) REFERENCES person (id)
     )
   `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS person (
+      id INTEGER PRIMARY KEY,
+      pass_series INTEGER NOT NULL,
+      pass_num INTEGER NOT NULL,
+      pass_date TEXT NOT NULL,
+      pass_authority TEXT NOT NULL,
+      pass_code INTEGER NOT NULL,
+      surname TEXT NOT NULL,
+      name TEXT NOT NULL,
+      m_name TEXT NOT NULL,
+      sex TEXT NOT NULL,
+      pl_of_birth TEXT NOT NULL,
+      date_birth TEXT NOT NULL,
+      place_reg TEXT NOT NULL,
+      snils INTEGER NOT NULL,
+      tel_num INTEGER NOT NULL,
+      mail TEXT NOT NULL
+    )
+  `);
+  
+
 });
+
+ 
 
 // API: Get all apartments with reservation status
 app.get('/api/apartments', (req, res) => {

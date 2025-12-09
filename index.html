@@ -8,8 +8,8 @@
 </head>
 <body>
   <div class="container">
-    <h1>Apartment Reservation System</h1>
-    <p>Click on an apartment to reserve or cancel.</p>
+    <h1>Семейный квартал - система резервации</h1>
+    <p>Территория счастья</p>
 
     <div id="blocks"></div>
 
@@ -20,11 +20,11 @@
         <h2 id="apt-title"></h2>
         <div id="status"></div>
         <div id="form-container" style="display:none;">
-          <input type="text" id="name" placeholder="Name" required>
-          <input type="text" id="surname" placeholder="Surname" required>
-          <button id="reserve-btn">Reserve</button>
+          <input type="text" id="surname" placeholder="Фамилия" required>
+          <input type="text" id="name" placeholder="Имя" required>
+          <button id="reserve-btn">Зарезервировать</button>
         </div>
-        <button id="cancel-btn" style="display:none; background:#e74c3c;">Cancel Reservation</button>
+        <button id="cancel-btn" style="display:none; background:#e74c3c;">Отмена резерва</button>
       </div>
     </div>
   </div>
@@ -64,7 +64,7 @@
       Object.keys(houses[house]).sort((a, b) => a - b).forEach(block => {
         const blockDiv = document.createElement('div');
         blockDiv.className = 'block';
-        blockDiv.innerHTML = `<h2>Подьъезд ${block}</h2>`;
+        blockDiv.innerHTML = `<h2>Подъезд ${block}</h2>`;
 
         // Get floors, sort descending
         const floors = Object.keys(houses[house][block]).map(Number).sort((a, b) => a - b);
@@ -106,7 +106,7 @@
 
   function openModal(apt) {
     if (!apt.id) {
-      return alert('Error: Apartment not found in database. Contact admin.');
+      return alert('Ошибка. Свяжитесь с админом.');
     }
     currentApartmentId = apt.id;
     document.getElementById('apt-title').textContent = `${apt.number} (House ${apt.house_num}, Block ${apt.block}, Floor ${apt.floor})`;
@@ -131,7 +131,7 @@
   document.getElementById('reserve-btn').onclick = async () => {
     const name = document.getElementById('name').value.trim();
     const surname = document.getElementById('surname').value.trim();
-    if (!name || !surname) return alert("Please fill name and surname");
+    if (!name || !surname) return alert("Заполните поля");
 
     await fetch(`/api/reserve/${currentApartmentId}`, {
       method: 'POST',
