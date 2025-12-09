@@ -8,7 +8,8 @@
   "dependencies": {
     "body-parser": "^1.20.4",
     "express": "^4.22.1",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+    "xlsx": "^0.18.5"
   },
   "description": "apartment-reservation/ ├── index.html              ← Main page with apartment layout ├── style.css               ← Clean styling ├── app.js                  ← Backend (Express + SQLite) ├── db.sqlite               ← Database file (auto-created) ├── package.json └── README.md",
   "repository": {

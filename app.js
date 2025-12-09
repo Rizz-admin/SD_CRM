@@ -10,15 +10,33 @@ const db = new sqlite3.Database('./db.sqlite');
 app.use(bodyParser.json());
 app.use(express.static(__dirname)); // Serve HTML, CSS, JS
 
-// Create tables if not exist
+// Create tables if not exist (no seeding needed anymore)
 db.serialize(() => {
   db.run(`
     CREATE TABLE IF NOT EXISTS apartments (
       id INTEGER PRIMARY KEY,
-      block TEXT NOT NULL,
+      house_num REAL,
+      block INTEGER NOT NULL,
       floor INTEGER NOT NULL,
-      number TEXT NOT NULL,
-      UNIQUE(block, floor, number)
+      number INTEGER NOT NULL,
+      rooms INTEGER NOT NULL, 
+      room_1 INTEGER NOT NULL DEFAULT 0, 
+      room_2 INTEGER NOT NULL DEFAULT 0, 
+      room_3 INTEGER NOT NULL DEFAULT 0, 
+      loggia_1 INTEGER NOT NULL DEFAULT 0, 
+      loggia_2 INTEGER NOT NULL DEFAULT 0, 
+      balcony_1 INTEGER NOT NULL DEFAULT 0, 
+      balcony_2 INTEGER NOT NULL DEFAULT 0, 
+      kitchen INTEGER NOT NULL DEFAULT 0, 
+      hall INTEGER NOT NULL DEFAULT 0, 
+      bath INTEGER NOT NULL DEFAULT 0, 
+      toilet INTEGER NOT NULL DEFAULT 0, 
+      storage INTEGER NOT NULL DEFAULT 0, 
+      liv_area INTEGER NOT NULL DEFAULT 0, 
+      tech_area INTEGER NOT NULL DEFAULT 0, 
+      area_nbalc INTEGER NOT NULL, 
+      area_wbalc INTEGER NOT NULL,
+      UNIQUE(house_num, block, floor, number)
     )
   `);
 
@@ -31,34 +49,16 @@ db.serialize(() => {
       FOREIGN KEY (apartment_id) REFERENCES apartments (id)
     )
   `);
-
-  // Seed some apartments if empty (3 blocks, 4 floors, 4 apts per floor)
-  const aptCount = db.prepare("SELECT COUNT(*) as count FROM apartments").get();
-  db.get("SELECT COUNT(*) as count FROM apartments", (err, row) => {
-    if (row.count === 0) {
-      const insert = db.prepare("INSERT OR IGNORE INTO apartments (block, floor, number) VALUES (?, ?, ?)");
-      const blocks = ['A', 'B', 'C'];
-      blocks.forEach(block => {
-        for (let floor = 1; floor <= 4; floor++) {
-          for (let num = 1; num <= 4; num++) {
-            insert.run(block, floor, `${block}${floor}0${num}`);
-          }
-        }
-      });
-      insert.finalize();
-      console.log("Sample apartments added (A, B, C blocks)");
-    }
-  });
 });
 
 // API: Get all apartments with reservation status
 app.get('/api/apartments', (req, res) => {
   const sql = `
-    SELECT a.id, a.block, a.floor, a.number,
+    SELECT a.id, a.house_num, a.block, a.floor, a.number, a.area_nbalc,
            r.name, r.surname, r.reserved_at
     FROM apartments a
     LEFT JOIN reservations r ON a.id = r.apartment_id
-    ORDER BY a.block, a.floor, a.number
+    ORDER BY a.house_num, a.block, a.floor DESC, a.number
   `;
   db.all(sql, [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
@@ -102,3 +102,4 @@ app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
   console.log(`Open browser and go to: http://localhost:${PORT}`);
 });
+

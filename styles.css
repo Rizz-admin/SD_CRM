@@ -110,3 +110,25 @@ button {
 
 #reserve-btn { background: #2ecc71; color: white; }
 #reserve-btn:hover { background: #27ae60; }
+
+.house {
+  margin-bottom: 50px;
+  padding: 20px;
+  background: #e9ecef;
+  border-radius: 12px;
+}
+
+.house h1 {
+  text-align: center;
+  color: #34495e;
+  margin-bottom: 20px;
+}
+.apartment {
+  /* ... existing styles ... */
+  line-height: 1.4;
+  font-size: 14px;
+}
+.apartment strong {
+  font-size: 16px;
+  background: #2ecc71;
+}

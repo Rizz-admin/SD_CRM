@@ -29,126 +29,130 @@
     </div>
   </div>
 
-  <script>
-    const modal = document.getElementById('modal');
-    const closeBtn = document.querySelector('.close');
-    let currentApartmentId = null;
+<script>
+  const modal = document.getElementById('modal');
+  const closeBtn = document.querySelector('.close');
+  let currentApartmentId = null;
 
-    closeBtn.onclick = () => modal.style.display = 'none';
-    window.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; }
+  closeBtn.onclick = () => modal.style.display = 'none';
+  window.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; }
 
-    async function loadApartments() {
-  const res = await fetch('/api/apartments');
-  const apartments = await res.json();
+  async function loadApartments() {
+    const res = await fetch('/api/apartments');
+    const apartments = await res.json();
 
-  const container = document.getElementById('blocks');
-  container.innerHTML = '';
+    const container = document.getElementById('blocks');
+    container.innerHTML = '';
 
-  // Group apartments by block → floor → list
-  const blocks = {};
-  apartments.forEach(apt => {
-    if (!blocks[apt.block]) blocks[apt.block] = {};
-    if (!blocks[apt.block][apt.floor]) blocks[apt.block][apt.floor] = [];
-    blocks[apt.block][apt.floor].push(apt);
-  });
+    // Group by house_num > block > floor > apartments
+    const houses = {};
+    apartments.forEach(apt => {
+      const house = apt.house_num.toString(); // Treat REAL as string for keys
+      if (!houses[house]) houses[house] = {};
+      if (!houses[house][apt.block]) houses[house][apt.block] = {};
+      if (!houses[house][apt.block][apt.floor]) houses[house][apt.block][apt.floor] = [];
+      houses[house][apt.block][apt.floor].push(apt);
+    });
 
-  // Render each block
-  Object.keys(blocks).sort().forEach(block => {
-    const blockDiv = document.createElement('div');
-    blockDiv.className = 'block';
-    blockDiv.innerHTML = `<h2>Block ${block}</h2>`;
+    // Render each house (sorted ascending)
+    Object.keys(houses).sort().forEach(house => {
+      const houseDiv = document.createElement('div');
+      houseDiv.className = 'house';
+      houseDiv.innerHTML = `<h1>Дом ${house}</h1>`;
 
-    // Render floors from 4 down to 1
-    for (let floor = 5; floor >= 1; floor--) {
-      const floorDiv = document.createElement('div');
-      floorDiv.className = 'floor';
-      floorDiv.innerHTML = `<strong>Floor ${floor}</strong><div class="apartments"></div>`;
-      const aptContainer = floorDiv.querySelector('.apartments');
+      // Render blocks inside house (sorted ascending)
+      Object.keys(houses[house]).sort((a, b) => a - b).forEach(block => {
+        const blockDiv = document.createElement('div');
+        blockDiv.className = 'block';
+        blockDiv.innerHTML = `<h2>Подьъезд ${block}</h2>`;
 
-      // Always show exactly these 4 apartments per floor
-      const numbers = [`${block}${floor}01`, `${block}${floor}02`, `${block}${floor}03`, `${block}${floor}04`];
+        // Get floors, sort descending
+        const floors = Object.keys(houses[house][block]).map(Number).sort((a, b) => a - b);
 
-      numbers.forEach(num => {
-        // Find exact match: block + floor + number
-        const apt = apartments.find(a =>
-          a.block === block && a.floor === floor && a.number === num
-        ) || {
-          id: null,
-          block,
-          floor,
-          number: num,
-          name: null,
-          surname: null
-        };
+        floors.forEach(floor => {
+          const floorDiv = document.createElement('div');
+          floorDiv.className = 'floor';
+          floorDiv.innerHTML = `<strong>Этаж ${floor}</strong><div class="apartments"></div>`;
+          const aptContainer = floorDiv.querySelector('.apartments');
 
-        const aptDiv = document.createElement('div');
-        aptDiv.className = 'apartment';
-        aptDiv.textContent = num;
+          // Sort apartments by number
+          const aptsOnFloor = houses[house][block][floor].sort((a, b) => a.number - b.number);
 
-        if (apt.name) {
-          aptDiv.classList.add('reserved');
-          aptDiv.title = `Reserved by ${apt.name} ${apt.surname}`;
-        } else {
-          aptDiv.title = 'Available – click to reserve';
-        }
+          aptsOnFloor.forEach(apt => {
+            const aptDiv = document.createElement('div');
+            aptDiv.className = 'apartment';
+            aptDiv.innerHTML = `<strong>${apt.number}</strong><br>${apt.area_nbalc} m²`;  // Add area_nbalc here
 
-        aptDiv.onclick = () => openModal(apt);
-        aptContainer.appendChild(aptDiv);
+            if (apt.name) {
+              aptDiv.classList.add('reserved');
+              aptDiv.title = `Reserved by ${apt.name} ${apt.surname} (${apt.area_nbalc} m²)`;
+            } else {
+              aptDiv.title = `Available (${apt.area_nbalc} m²) – click to reserve`;
+            }
+
+            aptDiv.onclick = () => openModal(apt);
+            aptContainer.appendChild(aptDiv);
+          });
+
+          blockDiv.appendChild(floorDiv);
+        });
+
+        houseDiv.appendChild(blockDiv);
       });
 
-      blockDiv.appendChild(floorDiv);
+      container.appendChild(houseDiv);
+    });
+  }
+
+  function openModal(apt) {
+    if (!apt.id) {
+      return alert('Error: Apartment not found in database. Contact admin.');
+    }
+    currentApartmentId = apt.id;
+    document.getElementById('apt-title').textContent = `${apt.number} (House ${apt.house_num}, Block ${apt.block}, Floor ${apt.floor})`;
+
+    const status = document.getElementById('status');
+    const form = document.getElementById('form-container');
+    const cancelBtn = document.getElementById('cancel-btn');
+
+    if (apt.name) {
+      status.innerHTML = `<p><strong>Reserved by:</strong> ${apt.name} ${apt.surname}</p>`;
+      form.style.display = 'none';
+      cancelBtn.style.display = 'block';
+    } else {
+      status.innerHTML = '<p style="color:green;">Available</p>';
+      form.style.display = 'block';
+      cancelBtn.style.display = 'none';
     }
 
-    container.appendChild(blockDiv);
-  });
-}
+    modal.style.display = 'block';
+  }
 
-    function openModal(apt) {
-      currentApartmentId = apt.id;
-      document.getElementById('apt-title').textContent = `${apt.number} (Block ${apt.block}, Floor ${apt.floor})`;
+  document.getElementById('reserve-btn').onclick = async () => {
+    const name = document.getElementById('name').value.trim();
+    const surname = document.getElementById('surname').value.trim();
+    if (!name || !surname) return alert("Please fill name and surname");
 
-      const status = document.getElementById('status');
-      const form = document.getElementById('form-container');
-      const cancelBtn = document.getElementById('cancel-btn');
-
-      if (apt.name) {
-        status.innerHTML = `<p><strong>Reserved by:</strong> ${apt.name} ${apt.surname}</p>`;
-        form.style.display = 'none';
-        cancelBtn.style.display = 'block';
-      } else {
-        status.innerHTML = '<p style="color:green;">Available</p>';
-        form.style.display = 'block';
-        cancelBtn.style.display = 'none';
-      }
-
-      modal.style.display = 'block';
-    }
-
-    document.getElementById('reserve-btn').onclick = async () => {
-      const name = document.getElementById('name').value.trim();
-      const surname = document.getElementById('surname').value.trim();
-      if (!name || !surname) return alert("Please fill name and surname");
-
-      await fetch(`/api/reserve/${currentApartmentId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, surname })
-      });
-      modal.style.display = 'none';
-      loadApartments();
-    };
-
-    document.getElementById('cancel-btn').onclick = async () => {
-      if (!confirm("Cancel this reservation?")) return;
-
-      await fetch(`/api/reserve/${currentApartmentId}`, { method: 'DELETE' });
-      modal.style.display = 'none';
-      loadApartments();
-    };
-
-    // Load on start
+    await fetch(`/api/reserve/${currentApartmentId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, surname })
+    });
+    modal.style.display = 'none';
     loadApartments();
-    setInterval(loadApartments, 10000); // Auto-refresh every 10s
-  </script>
+  };
+
+  document.getElementById('cancel-btn').onclick = async () => {
+    if (!confirm("Cancel this reservation?")) return;
+
+    await fetch(`/api/reserve/${currentApartmentId}`, { method: 'DELETE' });
+    modal.style.display = 'none';
+    loadApartments();
+  };
+
+  // Load on start
+  loadApartments();
+  setInterval(loadApartments, 10000); // Auto-refresh every 10s
+</script>
 </body>
 </html>
